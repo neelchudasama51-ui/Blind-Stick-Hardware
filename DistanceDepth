@@ -1,0 +1,64 @@
+// Pins
+const int TRIG_FRONT = 5;  // Front obstacle sensor
+const int ECHO_FRONT = 6;
+const int TRIG_DEPTH = 7;  // Downward depth sensor
+const int ECHO_DEPTH = 8;
+const int BUZZER_PIN = 9;  // Buzzer
+
+// Thresholds
+const float FRONT_THRESHOLD = 50.0;  // cm for front obstacles
+const float DEPTH_THRESHOLD = 15.0;  // cm drop for pothole/stairs
+
+// Function to measure distance
+float measureDistance(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+  return (duration * 0.0343) / 2; // cm
+}
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(TRIG_FRONT, OUTPUT);
+  pinMode(ECHO_FRONT, INPUT);
+  pinMode(TRIG_DEPTH, OUTPUT);
+  pinMode(ECHO_DEPTH, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  Serial.println("Smart Cane with Buzzer Started!");
+}
+
+void loop() {
+  float frontDist = measureDistance(TRIG_FRONT, ECHO_FRONT);
+  float depthDist = measureDistance(TRIG_DEPTH, ECHO_DEPTH);
+
+  Serial.print("Front: "); Serial.print(frontDist); Serial.print(" cm, ");
+  Serial.print("Depth: "); Serial.println(depthDist); Serial.println(" cm");
+
+  // Reset buzzer
+  digitalWrite(BUZZER_PIN, LOW);
+
+  // Front obstacle feedback: single short buzz
+  if (frontDist > 0 && frontDist <= FRONT_THRESHOLD) {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(200); // 200ms buzz
+    digitalWrite(BUZZER_PIN, LOW);
+  }
+
+  // Depth hazard feedback: rapid alternating buzzes
+  if (depthDist > 0 && depthDist >= DEPTH_THRESHOLD) {
+    for (int i = 0; i < 4; i++) { // 4 short pulses
+      digitalWrite(BUZZER_PIN, HIGH);
+      delay(100); 
+      digitalWrite(BUZZER_PIN, LOW);
+      delay(100);
+    }
+  }
+
+  delay(200); // Adjust loop timing
+}
